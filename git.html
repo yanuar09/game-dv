@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Jungle Monkey Quest | Platformer Adventure</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a2e1a 0%, #1a4a2a 50%, #0d2b18 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Quicksand', 'Press Start 2P', monospace;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Particle background effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 40%, rgba(255,215,0,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            animation: floatParticles 20s linear infinite;
+        }
+
+        @keyframes floatParticles {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-100px); }
+        }
+
+        .game-wrapper {
+            position: relative;
+            border-radius: 32px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 4px #f9e0a0, 0 0 0 8px #5a3a1a;
+            transition: transform 0.3s ease;
+        }
+
+        .game-wrapper:hover {
+            transform: scale(1.02);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            cursor: pointer;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        /* Premium UI Overlay */
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            left: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .score-container {
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 10px 24px;
+            border: 2px solid #ffd966;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+            pointer-events: auto;
+            animation: glowPulse 2s infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 5px #ffd966; }
+            50% { box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 20px #ffd966; }
+        }
+
+        .score-label {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 14px;
+            color: #ffd966;
+            letter-spacing: 2px;
+            margin-right: 12px;
+        }
+
+        .score-value {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px #ffd966;
+            background: linear-gradient(135deg, #fff, #ffd966);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .premium-btn {
+            background: linear-gradient(135deg, #2c1a0c, #1a0f06);
+            border: 2px solid #f9e0a0;
+            color: #f9e0a0;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-family: 'Quicksand', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .premium-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,217,102,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .premium-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .premium-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-color: #ffd966;
+            color: #ffd966;
+        }
+
+        /* Modal Pause Premium */
+        .pause-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: linear-gradient(135deg, rgba(20,30,10,0.95), rgba(10,20,5,0.95));
+            backdrop-filter: blur(20px);
+            border: 3px solid #ffd966;
+            border-radius: 40px;
+            padding: 40px 60px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            gap: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+            animation: modalPopIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes modalPopIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .pause-menu h2 {
+            font-family: 'Press Start 2P', monospace;
+            color: #ffd966;
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px #ffd966;
+        }
+
+        .pause-menu button {
+            background: linear-gradient(135deg, #f9e0a0, #e3b87c);
+            border: none;
+            font-family: 'Quicksand', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 30px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #2c1a0c;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .pause-menu button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            background: linear-gradient(135deg, #ffea9e, #f0c674);
+        }
+
+        /* Notifikasi floating */
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(135deg, #2d6a4f, #1b4d3e);
+            color: #ffd966;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-family: 'Quicksand', monospace;
+            font-weight: bold;
+            z-index: 300;
+            transform: translateX(400px);
+            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border-left: 5px solid #ffd966;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 800px) {
+            .score-label { font-size: 10px; }
+            .score-value { font-size: 20px; }
+            .premium-btn { padding: 6px 16px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+    <div class="ui-overlay">
+        <div class="score-container">
+            <span class="score-label">🍌 BANANAS</span>
+            <span class="score-value" id="scoreDisplay">0</span>
+            <span class="score-label">/10</span>
+        </div>
+        <div class="control-buttons">
+            <button class="premium-btn" id="pauseBtn">⏸ PAUSE</button>
+        </div>
+    </div>
+    <div class="pause-menu" id="pauseMenu">
+        <h2>⏸ GAME PAUSED</h2>
+        <button id="resumeBtn">▶ RESUME ADVENTURE</button>
+        <button id="quitToMenuBtn">🏠 BACK TO MENU</button>
+    </div>
+</div>
+<div id="notification" class="notification"></div>
+
+<script>
+    (function(){
+        // ========== CANVAS ==========
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        
+        // ========== GAME DIMENSIONS ==========
+        const W = 1200, H = 600;
+        const GROUND_Y = 540;
+        
+        // ========== SCENE MANAGEMENT ==========
+        let currentScene = 'mainmenu';
+        let isPaused = false;
+        
+        // ========== GAME STATE LEVEL 1 ==========
+        let gameRunning = true;
+        let gameWin = false;
+        
+        // Player
+        let player = {
+            x: 100, y: GROUND_Y - 42,
+            width: 34, height: 42,
+            vx: 0, vy: 0,
+            onGround: true,
+            facingRight: true,
+            frame: 0,
+            animTimer: 0,
+            state: 'idle'
+        };
+        
+        const GRAVITY = 0.8;
+        const JUMP_POWER = -11.5;
+        const WALK_ACC = 0.7;
+        const MAX_SPEED = 5.8;
+        const GROUND_FRICTION = 0.92;
+        const AIR_FRICTION = 0.99;
+        
+        // Platform (6 platform berbeda ketinggian)
+        let platforms = [
+            { x: 0, y: GROUND_Y, w: W, h: 20 },
+            { x: 180, y: GROUND_Y - 70, w: 100, h: 18 },
+            { x: 420, y: GROUND_Y - 130, w: 90, h: 18 },
+            { x: 680, y: GROUND_Y - 90, w: 110, h: 18 },
+            { x: 920, y: GROUND_Y - 150, w: 80, h: 18 },
+            { x: 1050, y: GROUND_Y - 55, w: 70, h: 18 }
+        ];
+        
+        let coins = [];
+        let score = 0;
+        
+        let enemy = {
+            x: 500, y: GROUND_Y - 40,
+            w: 34, h: 40,
+            vx: 1.3,
+            patrolMin: 280,
+            patrolMax: 920,
+            direction: 1
+        };
+        
+        let portal = { x: 1100, y: GROUND_Y - 75, w: 45, h: 55 };
+        let spawnPoint = { x: 100, y: GROUND_Y - 42 };
+        
+        // Camera
+        let cameraX = 0;
+        
+        // ========== AUDIO SYSTEM ==========
+        let audioCtx = null;
+        let bgmInterval = null;
+        
+        function initAudio() {
+            if(!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        function playSound(type) {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if(type === 'jump') {
+                osc.frequency.value = 523.25;
+                osc.type = 'sine';
+                gain.gain.value = 0.15;
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+                osc.start();
+                osc.stop(now + 0.2);
+            } else if(type === 'coin') {
+                osc.frequency.value = 880;
+                osc.type = 'sine';
+                gain.gain.value = 0.2;
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+                osc.start();
+                osc.stop(now + 0.15);
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.frequency.value = 1046.5;
+                    osc2.type = 'sine';
+                    gain2.gain.value = 0.15;
+                    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+                    osc2.start();
+                    osc2.stop(now + 0.1);
+                }, 50);
+            } else if(type === 'hurt') {
+                osc.frequency.value = 220;
+                osc.type = 'sawtooth';
+                gain.gain.value = 0.25;
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+                osc.start();
+                osc.stop(now + 0.35);
+            }
+        }
+        
+        function playBGM(scene) {
+            if(bgmInterval) clearInterval(bgmInterval);
+            if(!audioCtx) return;
+            
+            if(scene === 'mainmenu') {
+                const notes = [262, 294, 330, 349, 392, 440];
+                let idx = 0;
+                bgmInterval = setInterval(() => {
+                    if(currentScene !== 'mainmenu') return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = notes[idx % notes.length];
+                    osc.type = 'sine';
+                    gain.gain.value = 0.08;
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                    idx++;
+                }, 420);
+            } else if(scene === 'level1') {
+                const melody = [196, 220, 246, 262, 294, 262];
+                let idx = 0;
+                bgmInterval = setInterval(() => {
+                    if(currentScene !== 'level1' || isPaused) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = melody[idx % melody.length];
+                    osc.type = 'sine';
+                    gain.gain.value = 0.07;
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                    idx++;
+                }, 380);
+            }
+        }
+        
+        function stopBGM() {
+            if(bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+        }
+        
+        function showNotification(msg) {
+            const notif = document.getElementById('notification');
+            notif.textContent = msg;
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 2000);
+        }
+        
+        // ========== GAME MECHANICS ==========
+        function resetLevel() {
+            gameRunning = true;
+            gameWin = false;
+            score = 0;
+            updateScoreUI();
+            player = {
+                x: spawnPoint.x, y: spawnPoint.y,
+                width: 34, height: 42,
+                vx: 0, vy: 0,
+                onGround: true,
+                facingRight: true,
+                frame: 0, animTimer: 0,
+                state: 'idle'
+            };
+            
+            const coinPositions = [
+                {x: 220, y: GROUND_Y-90}, {x: 310, y: GROUND_Y-90},
+                {x: 470, y: GROUND_Y-150}, {x: 540, y: GROUND_Y-150},
+                {x: 720, y: GROUND_Y-110}, {x: 800, y: GROUND_Y-110},
+                {x: 960, y: GROUND_Y-170}, {x: 1020, y: GROUND_Y-170},
+                {x: 1080, y: GROUND_Y-75}, {x: 1145, y: GROUND_Y-75}
+            ];
+            coins = coinPositions.map(p => ({...p, w: 18, h: 18, collected: false}));
+            
+            enemy = {
+                x: 500, y: GROUND_Y - 40,
+                w: 34, h: 40,
+                vx: 1.3,
+                patrolMin: 280,
+                patrolMax: 920,
+                direction: 1
+            };
+        }
+        
+        function updateScoreUI() {
+            scoreDisplay.textContent = score;
+        }
+        
+        function applyCollision() {
+            let onGround = false;
+            for(let plat of platforms) {
+                if(player.vy >= 0 && 
+                   player.x + player.width > plat.x && player.x < plat.x+plat.w &&
+                   player.y + player.height <= plat.y + 15 &&
+                   player.y + player.height + player.vy >= plat.y) {
+                    player.y = plat.y - player.height;
+                    player.vy = 0;
+                    onGround = true;
+                }
+            }
+            if(player.x < 20) player.x = 20;
+            if(player.x + player.width > W - 20) player.x = W - player.width - 20;
+            if(player.y + player.height > H + 100) respawnPlayer();
+            player.onGround = onGround;
+        }
+        
+        function respawnPlayer() {
+            playSound('hurt');
+            showNotification('💀 Kena musuh! Kembali ke awal!');
+            player.x = spawnPoint.x;
+            player.y = spawnPoint.y;
+            player.vx = 0;
+            player.vy = 0;
+        }
+        
+        function updatePlayerMovement(keys) {
+            if(!gameRunning || gameWin) return;
+            
+            let left = keys.ArrowLeft || keys.KeyA;
+            let right = keys.ArrowRight || keys.KeyD;
+            
+            if(left) {
+                player.vx -= WALK_ACC;
+                if(player.vx < -MAX_SPEED) player.vx = -MAX_SPEED;
+                player.facingRight = false;
+                if(player.onGround) player.state = 'run';
+            } else if(right) {
+                player.vx += WALK_ACC;
+                if(player.vx > MAX_SPEED) player.vx = MAX_SPEED;
+                player.facingRight = true;
+                if(player.onGround) player.state = 'run';
+            } else {
+                if(player.onGround) player.state = 'idle';
+            }
+            
+            if(player.onGround) player.vx *= GROUND_FRICTION;
+            else player.vx *= AIR_FRICTION;
+            if(Math.abs(player.vx) < 0.2) player.vx = 0;
+            
+            if(keys.Space && player.onGround && gameRunning && !gameWin) {
+                player.vy = JUMP_POWER;
+                player.onGround = false;
+                player.state = 'jump';
+                playSound('jump');
+                keys.Space = false;
+            }
+            
+            player.vy += GRAVITY;
+            if(player.vy > 14) player.vy = 14;
+            player.x += player.vx;
+            player.y += player.vy;
+            applyCollision();
+            
+            if(!player.onGround) player.state = 'jump';
+        }
+        
+        function updateEnemy() {
+            enemy.x += enemy.vx;
+            if(enemy.x <= enemy.patrolMin) { enemy.x = enemy.patrolMin; enemy.vx = Math.abs(enemy.vx); }
+            if(enemy.x + enemy.w >= enemy.patrolMax) { enemy.x = enemy.patrolMax - enemy.w; enemy.vx = -Math.abs(enemy.vx); }
+            
+            if(!gameWin && gameRunning) {
+                if(player.x < enemy.x+enemy.w && player.x+player.width > enemy.x &&
+                   player.y < enemy.y+enemy.h && player.y+player.height > enemy.y) {
+                    respawnPlayer();
+                }
+            }
+        }
+        
+        function updateCoins() {
+            for(let c of coins) {
+                if(!c.collected && 
+                   player.x < c.x+c.w && player.x+player.width > c.x &&
+                   player.y < c.y+c.h && player.y+player.height > c.y) {
+                    c.collected = true;
+                    score++;
+                    updateScoreUI();
+                    playSound('coin');
+                    showNotification(`🍌 +1 Pisang! (${score}/10)`);
+                }
+            }
+        }
+        
+        function updatePortal() {
+            if(!gameWin && gameRunning && score >= 8) {
+                if(player.x < portal.x+portal.w && player.x+player.width > portal.x &&
+                   player.y+player.height > portal.y && player.y < portal.y+portal.h) {
+                    gameWin = true;
+                    gameRunning = false;
+                    currentScene = 'win';
+                    stopBGM();
+                    showNotification('🎉 SELAMAT! Kamu menang! 🎉');
+                }
+            }
+        }
+        
+        function updateCamera() {
+            let targetX = player.x + player.width/2 - W/2;
+            targetX = Math.min(Math.max(targetX, 0), W - W);
+            cameraX = targetX;
+        }
+        
+        // ========== DRAWING ==========
+        function drawMainMenu() {
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#0f3b1f');
+            grad.addColorStop(1, '#1a5c2e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+            
+            // Decorative elements
+            for(let i=0;i<50;i++) {
+                ctx.fillStyle = `rgba(255,215,0,${Math.random()*0.3})`;
+                ctx.beginPath();
+                ctx.arc(Math.random()*W, Math.random()*H, Math.random()*3, 0, Math.PI*2);
+                ctx.fill();
+            }
+            
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.font = 'bold 56px "Press Start 2P", monospace';
+            ctx.fillStyle = '#ffd966';
+            ctx.fillText('🐒 JUNGLE', W/2-180, H/2-100);
+            ctx.fillStyle = '#f9e0a0';
+            ctx.fillText('MONKEY', W/2-130, H/2-40);
+            
+            ctx.font = '20px "Quicksand", monospace';
+            ctx.fillStyle = '#e9c46a';
+            ctx.fillText('★ KUMPULKAN 8 PISANG ★', W/2-170, H/2+30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px monospace';
+            ctx.fillText('← → / A D  |  SPACE Lompat', W/2-160, H/2+90);
+            
+            // Tombol Play (animasi)
+            let time = Date.now() / 500;
+            let scale = 1 + Math.sin(time) * 0.03;
+            ctx.save();
+            ctx.translate(W/2, H/2+170);
+            ctx.scale(scale, scale);
+            ctx.fillStyle = '#f9e0a0';
+            ctx.shadowBlur = 20;
+            ctx.fillRect(-100, -25, 200, 55);
+            ctx.fillStyle = '#2c1a0c';
+            ctx.font = 'bold 26px "Quicksand", monospace';
+            ctx.fillText('▶ START GAME', -85, 12);
+            ctx.restore();
+            
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (W/rect.width);
+                const my = (e.clientY - rect.top) * (H/rect.height);
+                if(currentScene === 'mainmenu' && mx > W/2-100 && mx < W/2+100 && my > H/2+145 && my < H/2+195) {
+                    startLevel();
+                }
+            };
+        }
+        
+        function startLevel() {
+            currentScene = 'level1';
+            resetLevel();
+            stopBGM();
+            playBGM('level1');
+            gameRunning = true;
+            gameWin = false;
+            isPaused = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+            showNotification('🎮 Mulai petualangan! Kumpulkan pisang!');
+        }
+        
+        function drawLevel1() {
+            // Sky gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#1a4d3a');
+            grad.addColorStop(0.6, '#2d6a4f');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+            
+            // Sun
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+            ctx.fillStyle = '#ffd966';
+            ctx.shadowBlur = 30;
+            ctx.beginPath();
+            ctx.arc(100, 80, 40, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Trees
+            for(let i=0;i<12;i++) {
+                ctx.fillStyle = '#5e3a1c';
+                ctx.fillRect(50+i*130, GROUND_Y-80, 20, 80);
+                ctx.fillStyle = '#2d6a4f';
+                ctx.beginPath();
+                ctx.moveTo(40+i*130, GROUND_Y-90);
+                ctx.lineTo(60+i*130, GROUND_Y-140);
+                ctx.lineTo(80+i*130, GROUND_Y-90);
+                ctx.fill();
+            }
+            
+            // Platforms with style
+            for(let plat of platforms) {
+                ctx.fillStyle = '#8b5a2b';
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                ctx.fillStyle = '#c28a4e';
+                ctx.fillRect(plat.x+5, plat.y-5, plat.w-10, 8);
+                for(let i=0;i<plat.w/15;i++) {
+                    ctx.fillStyle = '#5e3a1c';
+                    ctx.fillRect(plat.x+5+i*15, plat.y+3, 6, 4);
+                }
+            }
+            
+            // Coins with glow
+            for(let c of coins) {
+                if(!c.collected) {
+                    ctx.shadowBlur = 12;
+                    ctx.shadowColor = '#ffd966';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.ellipse(c.x+9, c.y+9, 9, 11, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = '#b5732e';
+                    ctx.font = '20px monospace';
+                    ctx.fillText('🍌', c.x+2, c.y+17);
+                }
+            }
+            
+            // Enemy with detail
+            ctx.fillStyle = '#bc6c25';
+            ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+            ctx.fillStyle = '#5e3a1c';
+            ctx.fillRect(enemy.x+8, enemy.y-10, 18, 12);
+            ctx.fillStyle = '#d4a373';
+            ctx.beginPath();
+            ctx.arc(enemy.x+17, enemy.y+14, 9, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#2f241b';
+            ctx.fillRect(enemy.x+10, enemy.y+25, 14, 7);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(enemy.x+12, enemy.y+12, 2.5, 0, Math.PI*2);
+            ctx.arc(enemy.x+22, enemy.y+12, 2.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(enemy.x+11, enemy.y+11, 1.2, 0, Math.PI*2);
+            ctx.arc(enemy.x+21, enemy.y+11, 1.2, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Portal
+            if(score >= 8) {
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#9b5de5';
+                ctx.fillStyle = '#7b2cbf';
+                ctx.fillRect(portal.x, portal.y, portal.w, portal.h);
+                for(let i=0;i<3;i++) {
+                    ctx.fillStyle = `rgba(224,170,255,${0.5+Math.sin(Date.now()/200+i)*0.3})`;
+                    ctx.fillRect(portal.x+8+i*12, portal.y+15, 8, 25);
+                }
+                ctx.fillStyle = '#fff';
+                ctx.font = '28px monospace';
+                ctx.fillText('✨', portal.x+12, portal.y+38);
+            } else {
+                ctx.fillStyle = '#6c757d';
+                ctx.fillRect(portal.x, portal.y, portal.w, portal.h);
+                ctx.fillStyle = '#ced4da';
+                ctx.font = '24px monospace';
+                ctx.fillText('🔒', portal.x+13, portal.y+38);
+            }
+            
+            // Player with animation
+            ctx.shadowBlur = 8;
+            let bodyOffset = player.state === 'run' ? Math.sin(Date.now()*0.015)*3 : 0;
+            ctx.fillStyle = '#c9782e';
+            ctx.beginPath();
+            ctx.ellipse(player.x+17, player.y+21+bodyOffset, 15, 19, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#f4a261';
+            ctx.beginPath();
+            ctx.ellipse(player.x+17, player.y+19+bodyOffset, 11, 13, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#2d2d2d';
+            ctx.fillRect(player.x+11, player.y+11+bodyOffset, 12, 6);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(player.x+12, player.y+17+bodyOffset, 2.5, 0, Math.PI*2);
+            ctx.arc(player.x+22, player.y+17+bodyOffset, 2.5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x+10, player.y+26+bodyOffset, 14, 5);
+            ctx.font = '26px monospace';
+            ctx.fillText('🐒', player.x+8, player.y+28+bodyOffset);
+            
+            ctx.restore();
+            
+            // UI Text
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 14px "Press Start 2P", monospace';
+            ctx.fillStyle = '#fff';
+            ctx.fillText('← → / A D', W-150, 40);
+            ctx.fillText('SPACE JUMP', W-150, 70);
+            if(score >= 8) {
+                ctx.fillStyle = '#ffd966';
+                ctx.font = 'bold 18px monospace';
+                ctx.fillText('★ MASUK PORTAL! ★', W-250, 110);
+            }
+        }
+        
+        function drawWinScene() {
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#1b4332');
+            grad.addColorStop(1, '#2d6a4f');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+            
+            for(let i=0;i<100;i++) {
+                ctx.fillStyle = `rgba(255,215,0,${Math.random()*0.5})`;
+                ctx.beginPath();
+                ctx.arc(Math.random()*W, Math.random()*H, Math.random()*4, 0, Math.PI*2);
+                ctx.fill();
+            }
+            
+            ctx.font = 'bold 48px "Press Start 2P", monospace';
+            ctx.fillStyle = '#ffd966';
+            ctx.shadowBlur = 15;
+            ctx.fillText('🎉 VICTORY! 🎉', W/2-200, H/2-80);
+            ctx.font = '28px "Quicksand", monospace';
+            ctx.fillStyle = '#f9e0a0';
+            ctx.fillText(`You collected ${score} bananas!`, W/2-170, H/2);
+            ctx.fillStyle = '#e3b87c';
+            ctx.fillRect(W/2-130, H/2+80, 260, 55);
+            ctx.fillStyle = '#2c1a0c';
+            ctx.font = 'bold 22px "Quicksand", monospace';
+            ctx.fillText('🏠 MAIN MENU', W/2-85, H/2+118);
+            
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (W/rect.width);
+                const my = (e.clientY - rect.top) * (H/rect.height);
+                if(currentScene === 'win' && mx > W/2-130 && mx < W/2+130 && my > H/2+80 && my < H/2+135) {
+                    currentScene = 'mainmenu';
+                    stopBGM();
+                    playBGM('mainmenu');
+                    showNotification('🏝️ Kembali ke menu utama');
+                }
+            };
+        }
+        
+        // ========== INPUT ==========
+        let activeKeys = { ArrowLeft: false, ArrowRight: false, KeyA: false, KeyD: false, Space: false };
+        
+        window.addEventListener('keydown', (e) => {
+            let code = e.code;
+            if(code === 'ArrowLeft') activeKeys.ArrowLeft = true;
+            if(code === 'ArrowRight') activeKeys.ArrowRight = true;
+            if(code === 'KeyA') activeKeys.KeyA = true;
+            if(code === 'KeyD') activeKeys.KeyD = true;
+            if(code === 'Space') { e.preventDefault(); activeKeys.Space = true; }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            let code = e.code;
+            if(code === 'ArrowLeft') activeKeys.ArrowLeft = false;
+            if(code === 'ArrowRight') activeKeys.ArrowRight = false;
+            if(code === 'KeyA') activeKeys.KeyA = false;
+            if(code === 'KeyD') activeKeys.KeyD = false;
+            if(code === 'Space') activeKeys.Space = false;
+        });
+        
+        // UI Controls
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if(currentScene === 'level1' && !gameWin) {
+                isPaused = !isPaused;
+                document.getElementById('pauseMenu').style.display = isPaused ? 'flex' : 'none';
+                if(isPaused) showNotification('⏸ Game dijeda');
+            }
+        });
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            isPaused = false;
+            document.getElementById('pauseMenu').style.display = 'none';
+            showNotification('▶ Game dilanjutkan');
+        });
+        document.getElementById('quitToMenuBtn').addEventListener('click', () => {
+            isPaused = false;
+            currentScene = 'mainmenu';
+            stopBGM();
+            playBGM('mainmenu');
+            document.getElementById('pauseMenu').style.display = 'none';
+            showNotification('🏠 Kembali ke menu');
+        });
+        
+        // ========== GAME LOOP ==========
+        function updateScene() {
+            if(currentScene === 'level1' && !isPaused && gameRunning && !gameWin) {
+                updatePlayerMovement(activeKeys);
+                updateEnemy();
+                updateCoins();
+                updatePortal();
+                updateCamera();
+                if(activeKeys.Space) activeKeys.Space = false;
+            }
+            
+            if(currentScene === 'mainmenu') drawMainMenu();
+            else if(currentScene === 'level1') drawLevel1();
+            else if(currentScene === 'win') drawWinScene();
+            
+            requestAnimationFrame(updateScene);
+        }
+        
+        // Start
+        initAudio();
+        playBGM('mainmenu');
+        resetLevel();
+        updateScene();
+    })();
+</script>
+</body>
+</html>
